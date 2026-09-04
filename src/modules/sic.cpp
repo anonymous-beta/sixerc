@@ -40,9 +40,10 @@ std::string make_api_request(const std::string& url, const HarvestedSession& ses
     headers = curl_slist_append(headers, "Accept: application/json");
     headers = curl_slist_append(headers, "Accept-Language: en-US,en;q=0.9");
     headers = curl_slist_append(headers, "x-requested-with: XMLHttpRequest");
-    headers = curl_slist_append(headers, "x-request-id: " + 
-        utils::wstring_to_utf8(utils::utf8_to_wstring(
-            std::to_string(reinterpret_cast<uintptr_t>(curl)))));
+    {
+        std::string req_id = "x-request-id: " + std::to_string(reinterpret_cast<uintptr_t>(curl));
+        headers = curl_slist_append(headers, req_id.c_str());
+    }
     
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
