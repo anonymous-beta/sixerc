@@ -31,5 +31,4 @@ BEGIN
     END
 END
 
-// Icon - referenced from parent directory
-IDI_APP_ICON ICON "../sixerc.ico"
+IDI_APP_ICON ICON "sixerc.ico"
