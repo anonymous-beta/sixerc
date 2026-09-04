@@ -65,7 +65,7 @@ std::vector<BrowserProfile> enumerate_profiles() {
                         base_path + L"\\" + dir,
                         local_state,
                         profile_cookies,
-                        utils::wstring_to_utf8(browser.name + L"::" + dir)
+                        browser.name + "::" + utils::wstring_to_utf8(dir)
                     });
                 }
             }
