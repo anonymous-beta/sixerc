@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Static linking for standalone binary
-set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded\( < \)<CONFIG:Debug>:Debug>")
 
 find_package(OpenSSL REQUIRED)
 find_package(CURL REQUIRED)
@@ -40,12 +40,14 @@ target_compile_definitions(SIXERC PRIVATE
     NOMINMAX
     WIN32_LEAN_AND_MEAN
     _CRT_SECURE_NO_WARNINGS
-    SIXERC_VERSION=\"1.0.0\"
-    SIXERC_AUTHOR=\"Anonymous-beta (Chinedu)\"
-    SIXERC_CODENAME=\"Ekwensu's Grasp\"
+    SIXERC_VERSION="1.0.0"
+    SIXERC_AUTHOR="Anonymous-beta (Chinedu)"
+    "SIXERC_CODENAME=\"Ekwensu's Grasp\""
+    CURL_STATICLIB
 )
 
 target_link_libraries(SIXERC PRIVATE
+    OpenSSL::SSL
     OpenSSL::Crypto
     CURL::libcurl
     nlohmann_json::nlohmann_json
