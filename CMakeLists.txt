@@ -42,7 +42,7 @@ target_compile_definitions(SIXERC PRIVATE
     _CRT_SECURE_NO_WARNINGS
     SIXERC_VERSION="1.0.0"
     SIXERC_AUTHOR="Anonymous-beta (Chinedu)"
-    "SIXERC_CODENAME=\"Ekwensu's Grasp\""
+    SIXERC_CODENAME="Ekwensu's Grasp"
     CURL_STATICLIB
 )
 
