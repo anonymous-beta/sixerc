@@ -36,14 +36,13 @@ add_executable(SIXERC ${SIXERC_SOURCES})
 
 target_include_directories(SIXERC PRIVATE src)
 
-# Escape the apostrophe so CMake never sees it as a string terminator
 target_compile_definitions(SIXERC PRIVATE
     NOMINMAX
     WIN32_LEAN_AND_MEAN
     _CRT_SECURE_NO_WARNINGS
     SIXERC_VERSION="1.0.0"
     SIXERC_AUTHOR="Anonymous-beta (Chinedu)"
-    "SIXERC_CODENAME=\"Ekwensu's Grasp\""
+    SIXERC_CODENAME="Ekwensus Grasp"
     CURL_STATICLIB
 )
 
