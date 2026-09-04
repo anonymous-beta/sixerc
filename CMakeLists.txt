@@ -57,6 +57,7 @@ target_link_libraries(SIXERC PRIVATE
     ws2_32
     wininet
     shlwapi
+    dnsapi
 )
 
 # Release optimizations
