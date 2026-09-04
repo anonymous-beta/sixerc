@@ -1,5 +1,5 @@
 // ============================================================================
-// SIXERC — Cryptographic Engine
+// SIXERC - Cryptographic Engine
 // ============================================================================
 
 #include "core/crypto.hpp"
@@ -24,8 +24,8 @@ bytes dpapi_decrypt(const bytes& encrypted) {
     }
     
     bytes result(out_blob.pbData, out_blob.pbData + out_blob.cbData);
-    LocalFree(out_blob.pbData);
     secure_zero(out_blob.pbData, out_blob.cbData);
+    LocalFree(out_blob.pbData);
     return result;
 }
 
