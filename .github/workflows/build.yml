@@ -26,7 +26,8 @@ jobs:
     - name: Setup vcpkg
       uses: lukka/run-vcpkg@v11
       with:
-        vcpkgGitCommitId: 'c82f74667287d3dc386bce81e44964370c91a289'
+        # 2026.07.29 release — has current msys2/pkgconf URLs
+        vcpkgGitCommitId: '9e593bb18ea69cc5095e012465dcd675a822ed0d'
 
     - name: Configure CMake
       run: |
