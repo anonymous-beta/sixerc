@@ -1,0 +1,35 @@
+// SIXERC — Windows Resource File
+
+#include <windows.h>
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION     1,0,0,0
+PRODUCTVERSION  1,0,0,0
+FILEFLAGSMASK   VS_FFI_FILEFLAGSMASK
+FILEFLAGS       0
+FILEOS          VOS_NT_WINDOWS32
+FILETYPE        VFT_APP
+FILESUBTYPE     VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904E4"
+        BEGIN
+            VALUE "CompanyName",      "Anonymous-beta (Chinedu)"
+            VALUE "FileDescription",  "SIXERC — Enterprise Session Harvesting Suite"
+            VALUE "FileVersion",      "1.0.0"
+            VALUE "InternalName",     "SIXERC"
+            VALUE "LegalCopyright",   "Anonymous-beta (Chinedu)"
+            VALUE "OriginalFilename", "SIXERC.exe"
+            VALUE "ProductName",      "SIXERC"
+            VALUE "ProductVersion",   "1.0.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1252
+    END
+END
+
+// Icon — referenced from parent directory
+IDI_APP_ICON ICON "../sixerc.ico"
