@@ -36,13 +36,14 @@ add_executable(SIXERC ${SIXERC_SOURCES})
 
 target_include_directories(SIXERC PRIVATE src)
 
+# Bracket argument keeps the apostrophe from breaking CMake parsing
 target_compile_definitions(SIXERC PRIVATE
     NOMINMAX
     WIN32_LEAN_AND_MEAN
     _CRT_SECURE_NO_WARNINGS
     SIXERC_VERSION="1.0.0"
     SIXERC_AUTHOR="Anonymous-beta (Chinedu)"
-    SIXERC_CODENAME="Ekwensu's Grasp"
+    [[SIXERC_CODENAME="Ekwensu's Grasp"]]
     CURL_STATICLIB
 )
 
