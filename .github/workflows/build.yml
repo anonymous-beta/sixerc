@@ -10,35 +10,44 @@ on:
 jobs:
   build-windows:
     runs-on: windows-latest
-    
+
+    env:
+      # x-gha backend was removed from vcpkg. Use filesystem cache instead.
+      VCPKG_BINARY_SOURCES: "clear;default,readwrite"
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg_cache
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-      
+
+    - name: Create vcpkg binary cache directory
+      run: mkdir -p "${{ env.VCPKG_DEFAULT_BINARY_CACHE }}"
+
     - name: Setup vcpkg
       uses: lukka/run-vcpkg@v11
       with:
         vcpkgGitCommitId: 'c82f74667287d3dc386bce81e44964370c91a289'
-        
+
     - name: Configure CMake
       run: |
         cmake -B build -S . `
-          -DCMAKE_TOOLCHAIN_FILE="${{ env.VCPKG_ROOT }}\scripts\buildsystems\vcpkg.cmake" `
+          -DCMAKE_TOOLCHAIN_FILE="${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" `
           -DVCPKG_TARGET_TRIPLET=x64-windows-static `
           -DCMAKE_BUILD_TYPE=Release
-          
+
     - name: Build SIXERC
       run: cmake --build build --config Release --parallel
-      
+
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: SIXERC-x64-Release
         path: build/Release/SIXERC.exe
-        
+        if-no-files-found: error
+
     - name: Create Release
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         files: build/Release/SIXERC.exe
         tag_name: v1.0.0
@@ -47,5 +56,6 @@ jobs:
           SIXERC Enterprise Session Harvesting Suite
           Creator: Anonymous-beta (Chinedu)
           Codename: Ekwensu's Grasp
+        fail_on_unmatched_files: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
