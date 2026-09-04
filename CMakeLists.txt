@@ -5,8 +5,8 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Static linking for standalone binary
-set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded\( < \)<CONFIG:Debug>:Debug>")
+# Static linking for standalone binary (no generator expression — VS generator is multi-config)
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
 
 find_package(OpenSSL REQUIRED)
 find_package(CURL REQUIRED)
@@ -36,14 +36,14 @@ add_executable(SIXERC ${SIXERC_SOURCES})
 
 target_include_directories(SIXERC PRIVATE src)
 
-# Bracket argument keeps the apostrophe from breaking CMake parsing
+# Escape the apostrophe so CMake never sees it as a string terminator
 target_compile_definitions(SIXERC PRIVATE
     NOMINMAX
     WIN32_LEAN_AND_MEAN
     _CRT_SECURE_NO_WARNINGS
     SIXERC_VERSION="1.0.0"
     SIXERC_AUTHOR="Anonymous-beta (Chinedu)"
-    [[SIXERC_CODENAME="Ekwensu's Grasp"]]
+    "SIXERC_CODENAME=\"Ekwensu's Grasp\""
     CURL_STATICLIB
 )
 
