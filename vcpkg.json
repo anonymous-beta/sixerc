@@ -1,0 +1,11 @@
+{
+  "name": "sixerc",
+  "version-string": "1.0.0",
+  "description": "SIXERC — Enterprise Session Harvesting Suite (Ekwensu's Grasp)",
+  "dependencies": [
+    "sqlite3",
+    "openssl",
+    "curl",
+    "nlohmann-json"
+  ]
+}
