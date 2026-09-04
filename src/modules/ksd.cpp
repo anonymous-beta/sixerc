@@ -1,5 +1,5 @@
 // ============================================================================
-// SIXERC — KSD Implementation
+// SIXERC - KSD Implementation
 // ============================================================================
 
 #include "modules/ksd.hpp"
@@ -7,15 +7,19 @@
 #include "core/utils.hpp"
 #include "core/crypto.hpp"
 #include <windows.h>
+#include <psapi.h>
+#include <shellapi.h>
 #include <vector>
 #include <string>
 #include <thread>
 #include <chrono>
+#include <fstream>
+#include <atomic>
 
 namespace sixerc::ksd {
 
 static std::chrono::system_clock::time_point g_killswitch_time;
-static bool g_killswitch_active = false;
+static std::atomic<bool> g_killswitch_active{false};
 
 void wipe_memory() {
     // Force garbage collection of sensitive data
@@ -116,11 +120,11 @@ void self_destruct() {
 
 void set_killswitch_timer(uint32_t hours) {
     g_killswitch_time = std::chrono::system_clock::now() + std::chrono::hours(hours);
-    g_killswitch_active = true;
+    g_killswitch_active.store(true);
     
     // Start monitoring thread
     std::thread([]() {
-        while (g_killswitch_active) {
+        while (g_killswitch_active.load()) {
             if (should_trigger()) {
                 self_destruct();
             }
@@ -130,7 +134,7 @@ void set_killswitch_timer(uint32_t hours) {
 }
 
 bool should_trigger() {
-    if (!g_killswitch_active) return false;
+    if (!g_killswitch_active.load()) return false;
     return std::chrono::system_clock::now() >= g_killswitch_time;
 }
 
