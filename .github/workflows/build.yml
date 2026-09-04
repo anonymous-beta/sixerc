@@ -1,0 +1,51 @@
+name: Build SIXERC
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup vcpkg
+      uses: lukka/run-vcpkg@v11
+      with:
+        vcpkgGitCommitId: 'c82f74667287d3dc386bce81e44964370c91a289'
+        
+    - name: Configure CMake
+      run: |
+        cmake -B build -S . `
+          -DCMAKE_TOOLCHAIN_FILE="${{ env.VCPKG_ROOT }}\scripts\buildsystems\vcpkg.cmake" `
+          -DVCPKG_TARGET_TRIPLET=x64-windows-static `
+          -DCMAKE_BUILD_TYPE=Release
+          
+    - name: Build SIXERC
+      run: cmake --build build --config Release --parallel
+      
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: SIXERC-x64-Release
+        path: build/Release/SIXERC.exe
+        
+    - name: Create Release
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+      uses: softprops/action-gh-release@v1
+      with:
+        files: build/Release/SIXERC.exe
+        tag_name: v1.0.0
+        name: "SIXERC v1.0.0 — Ekwensu's Grasp"
+        body: |
+          SIXERC Enterprise Session Harvesting Suite
+          Creator: Anonymous-beta (Chinedu)
+          Codename: Ekwensu's Grasp
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
