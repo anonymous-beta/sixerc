@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Static linking for standalone binary (no generator expression — VS generator is multi-config)
+# Static linking for standalone binary
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
 
 find_package(OpenSSL REQUIRED)
@@ -27,7 +27,6 @@ set(SIXERC_SOURCES
     src/modules/ksd.cpp
 )
 
-# Add Windows resource file with icon
 if(WIN32)
     list(APPEND SIXERC_SOURCES src/sixerc.rc)
 endif()
@@ -36,13 +35,14 @@ add_executable(SIXERC ${SIXERC_SOURCES})
 
 target_include_directories(SIXERC PRIVATE src)
 
+# No spaces inside the string values — CMake splits on whitespace otherwise
 target_compile_definitions(SIXERC PRIVATE
     NOMINMAX
     WIN32_LEAN_AND_MEAN
     _CRT_SECURE_NO_WARNINGS
-    SIXERC_VERSION="1.0.0"
-    SIXERC_AUTHOR="Anonymous-beta (Chinedu)"
-    SIXERC_CODENAME="Ekwensus Grasp"
+    SIXERC_VERSION=\"1.0.0\"
+    SIXERC_AUTHOR=\"Anonymous-beta\"
+    SIXERC_CODENAME=\"Ekwensus-Grasp\"
     CURL_STATICLIB
 )
 
@@ -62,7 +62,6 @@ target_link_libraries(SIXERC PRIVATE
     dnsapi
 )
 
-# Release optimizations
 if(MSVC)
     target_compile_options(SIXERC PRIVATE
         /O2
