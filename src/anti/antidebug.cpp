@@ -7,6 +7,8 @@
 #include <vector>
 #include <thread>
 #include <chrono>
+#include <tlhelp32.h>
+#include <winternl.h>
 
 namespace sixerc::anti {
 
