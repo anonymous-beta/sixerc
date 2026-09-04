@@ -1,4 +1,4 @@
-// SIXERC — Windows Resource File
+// SIXERC - Windows Resource File
 
 #include <windows.h>
 
@@ -16,7 +16,7 @@ BEGIN
         BLOCK "040904E4"
         BEGIN
             VALUE "CompanyName",      "Anonymous-beta (Chinedu)"
-            VALUE "FileDescription",  "SIXERC — Enterprise Session Harvesting Suite"
+            VALUE "FileDescription",  "SIXERC - Enterprise Session Harvesting Suite"
             VALUE "FileVersion",      "1.0.0"
             VALUE "InternalName",     "SIXERC"
             VALUE "LegalCopyright",   "Anonymous-beta (Chinedu)"
@@ -31,5 +31,5 @@ BEGIN
     END
 END
 
-// Icon — referenced from parent directory
+// Icon - referenced from parent directory
 IDI_APP_ICON ICON "../sixerc.ico"
