@@ -2,65 +2,84 @@ name: Build SIXERC
 
 on:
   push:
-    branches: [ main, master ]
+    branches:
+      - main
+      - master
+    tags:
+      - "v*"
+
   pull_request:
-    branches: [ main, master ]
+    branches:
+      - main
+      - master
+
   workflow_dispatch:
 
-# ==== ADD THIS LINE ====
 permissions:
   contents: write
 
+concurrency:
+  group: sixerc-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-windows:
+    name: Build Windows x64
     runs-on: windows-latest
 
-    env:
-      # x-gha backend was removed from vcpkg. Use filesystem cache instead.
-      VCPKG_BINARY_SOURCES: "clear;default,readwrite"
-      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg_cache
-
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout source
+        uses: actions/checkout@v4
 
-    - name: Create vcpkg binary cache directory
-      run: mkdir -p "${{ env.VCPKG_DEFAULT_BINARY_CACHE }}"
+      - name: Configure CMake
+        shell: pwsh
+        run: |
+          cmake -S . -B build `
+            -A x64 `
+            -DCMAKE_BUILD_TYPE=Release
 
-    - name: Setup vcpkg
-      uses: lukka/run-vcpkg@v11
-      with:
-        # 2026.07.29 release — has current msys2/pkgconf URLs
-        vcpkgGitCommitId: '9e593bb18ea69cc5095e012465dcd675a822ed0d'
+      - name: Build SIXERC
+        shell: pwsh
+        run: |
+          cmake --build build `
+            --config Release `
+            --parallel
 
-    - name: Configure CMake
-      run: |
-        cmake -B build -S . `
-          -DCMAKE_TOOLCHAIN_FILE="${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" `
-          -DVCPKG_TARGET_TRIPLET=x64-windows-static `
-          -DCMAKE_BUILD_TYPE=Release
+      - name: Verify executable
+        shell: pwsh
+        run: |
+          $exe = "build/Release/SIXERC.exe"
 
-    - name: Build SIXERC
-      run: cmake --build build --config Release --parallel
+          if (!(Test-Path $exe)) {
+            Write-Error "Expected executable was not produced: $exe"
+            exit 1
+          }
 
-    - name: Upload artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: SIXERC-x64-Release
-        path: build/Release/SIXERC.exe
-        if-no-files-found: error
+          $item = Get-Item $exe
 
-    - name: Create Release
-      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-      uses: softprops/action-gh-release@v2
-      with:
-        files: build/Release/SIXERC.exe
-        tag_name: v1.0.0
-        name: "SIXERC v1.0.0 — Ekwensu's Grasp"
-        body: |
-          SIXERC Enterprise Session Harvesting Suite
-          Creator: Anonymous-beta (Chinedu)
-          Codename: Ekwensu's Grasp
-        fail_on_unmatched_files: true
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          if ($item.Length -lt 10240) {
+            Write-Error "Executable is unexpectedly small."
+            exit 1
+          }
+
+          Write-Host "Executable: $($item.FullName)"
+          Write-Host "Size: $($item.Length) bytes"
+
+      - name: Upload downloadable executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: SIXERC-Windows-x64
+          path: build/Release/SIXERC.exe
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "SIXERC ${{ github.ref_name }}"
+          generate_release_notes: true
+          files: build/Release/SIXERC.exe
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
