@@ -1,113 +1,94 @@
-// ============================================================================
-// SIXERC — Enterprise Session Harvesting Suite
-// Codename: "Ekwensu's Grasp"
-// Version: 1.0.0
-// Author: Anonymous-beta (Chinedu)
-// ============================================================================
-// Core type definitions and data structures
-// ============================================================================
 
 #pragma once
 
+#include <chrono>
+#include <cstdint>
 #include <string>
 #include <vector>
-#include <cstdint>
-#include <chrono>
-#include <map>
+#include <optional>
 
 namespace sixerc {
 
-using byte = uint8_t;
+using byte = std::uint8_t;
 using bytes = std::vector<byte>;
 
-// Browser enumeration
-enum class BrowserType {
-    Chrome,
-    Edge,
-    Brave,
-    Opera,
-    Unknown
+enum class AuditSeverity {
+    Informational,
+    Low,
+    Medium,
+    High,
+    Critical
 };
 
-struct BrowserProfile {
-    BrowserType type;
-    std::wstring profile_path;
-    std::wstring local_state_path;
-    std::wstring cookies_db_path;
-    std::string profile_name;
+struct AuditFinding {
+    std::string id;
+    std::string title;
+    std::string description;
+    AuditSeverity severity = AuditSeverity::Informational;
+    std::string recommendation;
+    std::chrono::system_clock::time_point observed_at =
+        std::chrono::system_clock::now();
 };
 
-// Cookie structure
-struct SessionCookie {
-    std::string name;
-    std::string value;
-    std::string domain;
-    std::string path;
-    uint64_t expires_utc;
-    bool is_secure;
-    bool is_httponly;
-    bool is_persistent;
-    std::string browser_source;
-    std::string profile_source;
+struct SessionClaims {
+    std::string issuer;
+    std::string audience;
+    std::string subject;
+    std::string tenant_id;
+    std::string object_id;
+    std::string client_id;
+
+    std::optional<std::int64_t> issued_at;
+    std::optional<std::int64_t> not_before;
+    std::optional<std::int64_t> expires_at;
+
+    bool expired = false;
+    bool not_yet_valid = false;
+    bool signature_verified = false;
 };
 
-// Token structure
-struct M365Token {
-    std::string token_type;      // ESTSAUTH, ESTSAUTHPERSISTENT, ESTSAUTHLIGHT
-    std::string value;
-    std::string domain;
-    bool is_valid;
-    bool mfa_claimed;
-    std::chrono::system_clock::time_point expiry;
+struct SessionInspection {
+    bool structurally_valid = false;
+    bool claims_read = false;
+    bool signature_verified = false;
+
+    std::string token_format;
+    std::string message;
+
+    SessionClaims claims;
+    std::vector<AuditFinding> findings;
 };
 
-// Harvested session
-struct HarvestedSession {
-    std::string user_hint;
-    std::vector<SessionCookie> cookies;
-    std::vector<M365Token> tokens;
-    std::string browser_fingerprint;
-    std::string user_agent;
-    std::chrono::system_clock::time_point harvested_at;
+struct SystemFacts {
+    std::wstring computer_name;
+    std::wstring windows_version;
+    std::wstring architecture;
+    std::uint64_t uptime_seconds = 0;
 };
 
-// Exfiltration configuration
-struct C2Config {
-    std::string primary_endpoint;
-    std::string fallback_endpoint;
-    std::string rsa_public_key_pem;
-    uint32_t exfil_interval_seconds;
-    uint32_t jitter_ms_min;
-    uint32_t jitter_ms_max;
-    bool use_dns_tunnel;
-    bool use_file_drop;
+struct ProcessRecord {
+    std::uint32_t pid = 0;
+    std::wstring image_name;
 };
 
-// Operational configuration
-struct OpConfig {
-    C2Config c2;
-    bool enable_persistence;
-    bool enable_killswitch;
-    uint32_t killswitch_timer_hours;
-    std::vector<std::string> target_users;
+struct StartupEntry {
+    std::wstring source;
+    std::wstring name;
+    std::wstring value;
 };
 
-// Service access types
-enum class M365Service {
-    Outlook,
-    SharePoint,
-    OneDrive,
-    Teams,
-    Calendar,
-    Contacts,
-    Planner
+struct FileIntegrityResult {
+    bool success = false;
+    std::wstring algorithm = L"SHA-256";
+    std::wstring digest;
+    std::wstring message;
 };
 
-struct ServiceData {
-    M365Service service;
-    std::string endpoint;
-    std::string raw_response;
-    bool access_granted;
+struct AuditReport {
+    std::string product = "SIXERC";
+    std::string version = "2.0.0";
+    std::string author = "Anonymous-beta";
+    std::vector<AuditFinding> findings;
 };
 
 } // namespace sixerc
