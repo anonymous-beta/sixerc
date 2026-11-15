@@ -8,10 +8,12 @@
 #endif
 
 #include <windows.h>
+#include <windowsx.h>
 #include <commdlg.h>
 #include <shellapi.h>
 
 #include "modules/defensive_audit.hpp"
+#include "modules/session_inspector_window.hpp"
 
 #include <algorithm>
 #include <array>
@@ -42,6 +44,7 @@ enum class Action {
     Processes,
     Startup,
     Hash,
+    SessionInspector,
     Export,
     Refresh
 };
@@ -53,22 +56,26 @@ struct Button {
 };
 
 HWND g_window = nullptr;
+
 HFONT g_regular = nullptr;
 HFONT g_bold = nullptr;
 HFONT g_small = nullptr;
 
+HBRUSH g_background_brush = nullptr;
+
 std::vector<std::wstring> g_output;
 std::vector<std::wstring> g_report;
-std::wstring g_status = L"AWAITING COMMAND";
-std::wstring g_last_file;
 
-std::array<Button, 6> g_buttons{{
+std::wstring g_status = L"AWAITING COMMAND";
+
+std::array<Button, 7> g_buttons{{
     {{34, 205, 270, 254}, L"SYSTEM INTELLIGENCE", Action::System},
     {{34, 270, 270, 319}, L"PROCESS INVENTORY", Action::Processes},
     {{34, 335, 270, 384}, L"STARTUP INSPECTION", Action::Startup},
     {{34, 400, 270, 449}, L"FILE INTEGRITY", Action::Hash},
-    {{34, 465, 270, 514}, L"EXPORT AUDIT REPORT", Action::Export},
-    {{34, 530, 270, 579}, L"REFRESH CONSOLE", Action::Refresh}
+    {{34, 465, 270, 514}, L"SESSION INTELLIGENCE", Action::SessionInspector},
+    {{34, 530, 270, 579}, L"EXPORT AUDIT REPORT", Action::Export},
+    {{34, 595, 270, 644}, L"REFRESH CONSOLE", Action::Refresh}
 }};
 
 std::wstring timestamp() {
@@ -89,14 +96,21 @@ std::wstring timestamp() {
 }
 
 void log_line(const std::wstring& value) {
-    const std::wstring line =
+    const std::wstring entry =
         L"[" + timestamp() + L"] " + value;
 
-    g_output.insert(g_output.begin(), line);
-    g_report.push_back(line);
+    g_output.insert(g_output.begin(), entry);
+    g_report.push_back(entry);
 
     if (g_output.size() > 100) {
         g_output.resize(100);
+    }
+
+    if (g_report.size() > 5000) {
+        g_report.erase(
+            g_report.begin(),
+            g_report.begin() + 1000
+        );
     }
 
     g_status = value;
@@ -108,6 +122,11 @@ void log_line(const std::wstring& value) {
 
 void fill(HDC dc, RECT rect, COLORREF color) {
     HBRUSH brush = CreateSolidBrush(color);
+
+    if (!brush) {
+        return;
+    }
+
     FillRect(dc, &rect, brush);
     DeleteObject(brush);
 }
@@ -121,6 +140,11 @@ void line(
     COLORREF color
 ) {
     HPEN pen = CreatePen(PS_SOLID, 1, color);
+
+    if (!pen) {
+        return;
+    }
+
     HGDIOBJ old = SelectObject(dc, pen);
 
     MoveToEx(dc, x1, y1, nullptr);
@@ -181,6 +205,11 @@ void panel(HDC dc, RECT rect) {
     fill(dc, rect, PANEL);
 
     HPEN pen = CreatePen(PS_SOLID, 1, BORDER);
+
+    if (!pen) {
+        return;
+    }
+
     HGDIOBJ old_pen = SelectObject(dc, pen);
     HGDIOBJ old_brush =
         SelectObject(dc, GetStockObject(HOLLOW_BRUSH));
@@ -195,6 +224,7 @@ void panel(HDC dc, RECT rect) {
 
     SelectObject(dc, old_brush);
     SelectObject(dc, old_pen);
+
     DeleteObject(pen);
 }
 
@@ -202,6 +232,11 @@ void draw_button(HDC dc, const Button& button) {
     fill(dc, button.rect, PANEL2);
 
     HPEN pen = CreatePen(PS_SOLID, 1, RED);
+
+    if (!pen) {
+        return;
+    }
+
     HGDIOBJ old_pen = SelectObject(dc, pen);
     HGDIOBJ old_brush =
         SelectObject(dc, GetStockObject(HOLLOW_BRUSH));
@@ -216,6 +251,7 @@ void draw_button(HDC dc, const Button& button) {
 
     SelectObject(dc, old_brush);
     SelectObject(dc, old_pen);
+
     DeleteObject(pen);
 
     RECT label = button.rect;
@@ -247,12 +283,22 @@ std::wstring make_report() {
     }
 
     out << L"\n";
-    out << L"Privacy: This report was generated locally.\n";
+    out << L"PRIVACY AND SCOPE\n";
+    out << L"-----------------\n";
+
+    out << L"This report contains locally generated audit activity.\n";
     out << L"No browser credentials or authentication sessions "
            L"were collected.\n";
 
+    out << L"JWT inspection is decode-only. Token signatures "
+           L"are not verified.\n";
+
     return out.str();
 }
+
+// ------------------------------------------------------------
+// SYSTEM INTELLIGENCE
+// ------------------------------------------------------------
 
 void run_system_audit() {
     const auto facts =
@@ -279,6 +325,10 @@ void run_system_audit() {
     );
 }
 
+// ------------------------------------------------------------
+// PROCESS INVENTORY
+// ------------------------------------------------------------
+
 void run_process_audit() {
     const auto processes =
         sixerc::audit::list_processes();
@@ -298,6 +348,10 @@ void run_process_audit() {
         );
     }
 }
+
+// ------------------------------------------------------------
+// STARTUP INSPECTION
+// ------------------------------------------------------------
 
 void run_startup_audit() {
     const auto entries =
@@ -320,10 +374,15 @@ void run_startup_audit() {
     }
 }
 
+// ------------------------------------------------------------
+// FILE INTEGRITY
+// ------------------------------------------------------------
+
 void run_file_hash(HWND owner) {
     wchar_t path[MAX_PATH]{};
 
     OPENFILENAMEW dialog{};
+
     dialog.lStructSize = sizeof(dialog);
     dialog.hwndOwner = owner;
     dialog.lpstrFile = path;
@@ -345,21 +404,34 @@ void run_file_hash(HWND owner) {
         sixerc::audit::sha256_file(path, digest);
 
     if (!result.ok) {
-        log_line(L"FILE HASH FAILED: " + result.message);
+        log_line(
+            L"FILE HASH FAILED: " + result.message
+        );
+
         return;
     }
 
-    g_last_file = path;
-
     log_line(L"SHA-256 FILE INTEGRITY CHECK");
-    log_line(L"File: " + std::wstring(path));
-    log_line(L"Digest: " + digest);
+
+    log_line(
+        L"File: " + std::wstring(path)
+    );
+
+    log_line(
+        L"Digest: " + digest
+    );
 }
 
+// ------------------------------------------------------------
+// AUDIT REPORT EXPORT
+// ------------------------------------------------------------
+
 void export_report(HWND owner) {
-    wchar_t path[MAX_PATH] = L"SIXERC-audit-report.txt";
+    wchar_t path[MAX_PATH] =
+        L"SIXERC-audit-report.txt";
 
     OPENFILENAMEW dialog{};
+
     dialog.lStructSize = sizeof(dialog);
     dialog.hwndOwner = owner;
     dialog.lpstrFile = path;
@@ -410,6 +482,10 @@ void export_report(HWND owner) {
     );
 }
 
+// ------------------------------------------------------------
+// ACTION ROUTER
+// ------------------------------------------------------------
+
 void execute(Action action, HWND owner) {
     switch (action) {
     case Action::System:
@@ -428,6 +504,14 @@ void execute(Action action, HWND owner) {
         run_file_hash(owner);
         break;
 
+    case Action::SessionInspector:
+        sixerc::ui::open_session_inspector(owner);
+
+        log_line(
+            L"SESSION INTELLIGENCE WINDOW OPENED"
+        );
+        break;
+
     case Action::Export:
         export_report(owner);
         break;
@@ -440,14 +524,22 @@ void execute(Action action, HWND owner) {
     InvalidateRect(owner, nullptr, FALSE);
 }
 
+// ------------------------------------------------------------
+// MAIN FRONTEND RENDERING
+// ------------------------------------------------------------
+
 void paint(HWND hwnd) {
     PAINTSTRUCT ps{};
+
     HDC dc = BeginPaint(hwnd, &ps);
 
     RECT client{};
+
     GetClientRect(hwnd, &client);
 
     fill(dc, client, BG);
+
+    // Main branding.
 
     text(
         dc,
@@ -473,34 +565,84 @@ void paint(HWND hwnd) {
         g_small
     );
 
-    line(dc, 34, 124, client.right - 34, 124, BORDER);
+    line(
+        dc,
+        34,
+        124,
+        client.right - 34,
+        124,
+        BORDER
+    );
+
+    // Status panel.
 
     RECT status_rect{
-        34, 145, client.right - 34, 184
+        34,
+        145,
+        client.right - 34,
+        184
     };
 
     panel(dc, status_rect);
 
-    text(dc, L"STATUS", 49, 157, GOLD, g_small);
-    text(dc, g_status, 125, 157, GREEN, g_bold);
+    text(
+        dc,
+        L"STATUS",
+        49, 157,
+        GOLD,
+        g_small
+    );
+
+    text(
+        dc,
+        g_status,
+        125, 157,
+        GREEN,
+        g_bold
+    );
+
+    // Main dashboard panels.
 
     RECT arsenal{
-        24, 190, 290, client.bottom - 24
+        24,
+        190,
+        290,
+        client.bottom - 24
     };
 
     RECT activity{
-        305, 190, client.right - 24, client.bottom - 24
+        305,
+        190,
+        client.right - 24,
+        client.bottom - 24
     };
 
     panel(dc, arsenal);
     panel(dc, activity);
 
-    text(dc, L"THE ARSENAL", 42, 174, RED_HOT, g_bold);
-    text(dc, L"FIELD OPERATIONS", 325, 174, RED_HOT, g_bold);
+    text(
+        dc,
+        L"THE ARSENAL",
+        42, 174,
+        RED_HOT,
+        g_bold
+    );
+
+    text(
+        dc,
+        L"FIELD OPERATIONS",
+        325, 174,
+        RED_HOT,
+        g_bold
+    );
+
+    // Draw all seven controls.
 
     for (const auto& button : g_buttons) {
         draw_button(dc, button);
     }
+
+    // Activity panel.
 
     text(
         dc,
@@ -512,15 +654,20 @@ void paint(HWND hwnd) {
 
     line(
         dc,
-        325, 235,
-        client.right - 44, 235,
+        325,
+        235,
+        client.right - 44,
+        235,
         BORDER
     );
 
     int y = 252;
 
+    const int available_height =
+        client.bottom - y - 45;
+
     const int max_lines =
-        std::max(0, (client.bottom - y - 45) / 23);
+        std::max(0, available_height / 23);
 
     const int count = std::min<int>(
         max_lines,
@@ -544,7 +691,8 @@ void paint(HWND hwnd) {
         text(
             dc,
             L"No operations performed. Select a module.",
-            325, 260,
+            325,
+            260,
             MUTED,
             g_regular
         );
@@ -552,6 +700,10 @@ void paint(HWND hwnd) {
 
     EndPaint(hwnd, &ps);
 }
+
+// ------------------------------------------------------------
+// WINDOW PROCEDURE
+// ------------------------------------------------------------
 
 LRESULT CALLBACK window_proc(
     HWND hwnd,
@@ -576,10 +728,12 @@ LRESULT CALLBACK window_proc(
         const int y = GET_Y_LPARAM(lparam);
 
         for (const auto& button : g_buttons) {
-            if (x >= button.rect.left &&
+            if (
+                x >= button.rect.left &&
                 x <= button.rect.right &&
                 y >= button.rect.top &&
-                y <= button.rect.bottom) {
+                y <= button.rect.bottom
+            ) {
                 execute(button.action, hwnd);
                 break;
             }
@@ -601,6 +755,10 @@ LRESULT CALLBACK window_proc(
         );
     }
 }
+
+// ------------------------------------------------------------
+// FONT MANAGEMENT
+// ------------------------------------------------------------
 
 void create_fonts() {
     g_regular = CreateFontW(
@@ -638,12 +796,27 @@ void create_fonts() {
 }
 
 void destroy_fonts() {
-    if (g_regular) DeleteObject(g_regular);
-    if (g_bold) DeleteObject(g_bold);
-    if (g_small) DeleteObject(g_small);
+    if (g_regular) {
+        DeleteObject(g_regular);
+        g_regular = nullptr;
+    }
+
+    if (g_bold) {
+        DeleteObject(g_bold);
+        g_bold = nullptr;
+    }
+
+    if (g_small) {
+        DeleteObject(g_small);
+        g_small = nullptr;
+    }
 }
 
 } // namespace
+
+// ------------------------------------------------------------
+// APPLICATION ENTRY POINT
+// ------------------------------------------------------------
 
 int WINAPI wWinMain(
     HINSTANCE instance,
@@ -652,18 +825,32 @@ int WINAPI wWinMain(
     int show_command
 ) {
     SetProcessDPIAware();
+
     create_fonts();
 
+    g_background_brush =
+        CreateSolidBrush(BG);
+
+    if (!g_background_brush) {
+        destroy_fonts();
+        return 1;
+    }
+
     WNDCLASSEXW wc{};
+
     wc.cbSize = sizeof(wc);
     wc.lpfnWndProc = window_proc;
     wc.hInstance = instance;
     wc.hCursor = LoadCursorW(nullptr, IDC_ARROW);
-    wc.hbrBackground = CreateSolidBrush(BG);
+    wc.hbrBackground = g_background_brush;
     wc.lpszClassName = WINDOW_CLASS;
 
     if (!RegisterClassExW(&wc)) {
+        DeleteObject(g_background_brush);
+        g_background_brush = nullptr;
+
         destroy_fonts();
+
         return 1;
     }
 
@@ -683,9 +870,16 @@ int WINAPI wWinMain(
     );
 
     if (!hwnd) {
-        DeleteObject(wc.hbrBackground);
-        UnregisterClassW(WINDOW_CLASS, instance);
+        UnregisterClassW(
+            WINDOW_CLASS,
+            instance
+        );
+
+        DeleteObject(g_background_brush);
+        g_background_brush = nullptr;
+
         destroy_fonts();
+
         return 1;
     }
 
@@ -693,20 +887,38 @@ int WINAPI wWinMain(
 
     log_line(L"EKWENSU CONSOLE INITIALIZED");
     log_line(L"LOCAL AUDIT MODE ACTIVE");
+    log_line(L"SESSION INTELLIGENCE MODULE REGISTERED");
 
     ShowWindow(hwnd, show_command);
     UpdateWindow(hwnd);
 
     MSG message{};
 
-    while (GetMessageW(&message, nullptr, 0, 0) > 0) {
+    while (
+        GetMessageW(
+            &message,
+            nullptr,
+            0,
+            0
+        ) > 0
+    ) {
         TranslateMessage(&message);
         DispatchMessageW(&message);
     }
 
+    g_window = nullptr;
+
     destroy_fonts();
-    DeleteObject(wc.hbrBackground);
-    UnregisterClassW(WINDOW_CLASS, instance);
+
+    if (g_background_brush) {
+        DeleteObject(g_background_brush);
+        g_background_brush = nullptr;
+    }
+
+    UnregisterClassW(
+        WINDOW_CLASS,
+        instance
+    );
 
     return static_cast<int>(message.wParam);
 }
