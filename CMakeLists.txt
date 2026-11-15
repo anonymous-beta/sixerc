@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.20)
 
 project(SIXERC
-    VERSION 2.0.0
+    VERSION 2.1.0
     DESCRIPTION "SIXERC - Ekwensu's Grasp"
     LANGUAGES CXX
 )
@@ -22,6 +22,8 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY
 add_executable(SIXERC WIN32
     src/main.cpp
     src/modules/defensive_audit.cpp
+    src/modules/session_inspector.cpp
+    src/modules/session_inspector_window.cpp
 )
 
 target_include_directories(SIXERC PRIVATE
@@ -45,6 +47,7 @@ target_link_libraries(SIXERC PRIVATE
     gdi32
     advapi32
     bcrypt
+    ole32
 )
 
 if(MSVC)
